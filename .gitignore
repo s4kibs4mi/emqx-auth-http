@@ -16,3 +16,5 @@ cover/
 ct.coverdata
 eunit.coverdata
 logs/
+.idea/
+emqx_auth_http.d
