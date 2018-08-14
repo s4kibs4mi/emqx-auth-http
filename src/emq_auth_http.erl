@@ -22,7 +22,7 @@
 
 -include_lib("emqttd/include/emqttd.hrl").
 
--import(emq_auth_http_cli, [request/3, feedvar/2, feedvar/3]).
+-import(emq_auth_http_cli, [request/3, request/4, feedvar/2, feedvar/3]).
 
 %% Callbacks
 -export([init/1, check/3, description/0]).
@@ -30,20 +30,21 @@
 -define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
 
 init({AuthReq, SuperReq}) ->
-    {ok, {AuthReq, SuperReq}}.
+  {ok, {AuthReq, SuperReq}}.
 
 check(#mqtt_client{username = Username}, Password, _Env) when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
-    {error, username_or_password_undefined};
+  {error, username_or_password_undefined};
 
 check(Client, Password, {#http_request{method = Method, url = Url, params = Params}, SuperReq}) ->
-    Params1 = feedvar(feedvar(Params, Client), "%P", Password),
-    case request(Method, Url, Params1) of
-        {ok, 200, "ignore"} -> ignore;
-        {ok, 200, _Body}  -> {ok, is_superuser(SuperReq, Client)};
-        {ok, Code, _Body} -> {error, Code};
-        {error, Error}    -> lager:error("HTTP ~s Error: ~p", [Url, Error]),
-                             {error, Error}
-    end.
+  Headers = [{"Authorization", "Bearer " ++ Password}],
+  Params1 = feedvar(feedvar(Params, Client), "%P", Password),
+  case request(Method, Url, Params1, Headers) of
+    {ok, 200, "ignore"} -> ignore;
+    {ok, 200, _Body} -> {ok, is_superuser(SuperReq, Client)};
+    {ok, Code, _Body} -> {error, Code};
+    {error, Error} -> lager:error("HTTP ~s Error: ~p", [Url, Error]),
+      {error, Error}
+  end.
 
 description() -> "Authentication by HTTP API".
 
@@ -53,11 +54,11 @@ description() -> "Authentication by HTTP API".
 
 -spec(is_superuser(undefined | #http_request{}, mqtt_client()) -> boolean()).
 is_superuser(undefined, _MqttClient) ->
-    false;
+  false;
 is_superuser(#http_request{method = Method, url = Url, params = Params}, MqttClient) ->
-    case request(Method, Url, feedvar(Params, MqttClient)) of
-        {ok, 200, _Body}   -> true;
-        {ok, _Code, _Body} -> false;
-        {error, Error}     -> lager:error("HTTP ~s Error: ~p", [Url, Error]), false
-    end.
+  case request(Method, Url, feedvar(Params, MqttClient)) of
+    {ok, 200, _Body} -> true;
+    {ok, _Code, _Body} -> false;
+    {error, Error} -> lager:error("HTTP ~s Error: ~p", [Url, Error]), false
+  end.
 
