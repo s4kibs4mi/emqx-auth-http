@@ -25,15 +25,15 @@
 %%--------------------------------------------------------------------
 
 request(get, Url, Params) ->
-  Req = {Url ++ "?" ++ mochiweb_util:urlencode(Params), []},
+  Req = {getAuthUrl(Url) ++ "?" ++ mochiweb_util:urlencode(Params), []},
   reply(request_(get, Req, [{autoredirect, true}], [], 0));
 
 request(post, Url, Params) ->
-  Req = {Url, [], "application/x-www-form-urlencoded", mochiweb_util:urlencode(Params)},
+  Req = {getAuthUrl(Url), [], "application/x-www-form-urlencoded", mochiweb_util:urlencode(Params)},
   reply(request_(post, Req, [{autoredirect, true}], [], 0)).
 
 request(post, Url, Params, Headers) ->
-  Req = {Url, Headers, "application/x-www-form-urlencoded", mochiweb_util:urlencode(Params)},
+  Req = {getAuthUrl(Url), Headers, "application/x-www-form-urlencoded", mochiweb_util:urlencode(Params)},
   reply(request_(post, Req, [{autoredirect, true}], [], 0)).
 
 request_(Method, Req, HTTPOpts, Opts, Times) ->
@@ -66,3 +66,5 @@ feedvar(Params, #mqtt_client{username = Username, client_id = ClientId, peername
 feedvar(Params, Var, Val) ->
   lists:map(fun({Param, Var0}) when Var0 == Var -> {Param, Val}; (Param) -> Param end, Params).
 
+getAuthUrl(Key) ->
+  os:getenv(Key).
