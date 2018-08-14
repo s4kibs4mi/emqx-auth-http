@@ -36,8 +36,7 @@ check(#mqtt_client{username = Username}, Password, _Env) when ?UNDEFINED(Usernam
   {error, username_or_password_undefined};
 
 check(Client, Password, {#http_request{method = Method, url = Url, params = Params}, SuperReq}) ->
-  Token = io:format("Bearer ~p", [Password]),
-  Headers = [{"Authorization", Token}],
+  Headers = [{"Authorization", string:concat("Bearer ", binary_to_list(Password))}],
   Params1 = feedvar(feedvar(Params, Client), "%P", Password),
   case request(Method, Url, Params1, Headers) of
     {ok, 200, "ignore"} -> ignore;
